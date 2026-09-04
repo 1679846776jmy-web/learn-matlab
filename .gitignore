@@ -1,0 +1,8 @@
+data/external_paths/data_paths_local.m
+data/small_samples/*
+!data/small_samples/README.md
+data/simulated/*
+!data/simulated/README.md
+outputs/
+*.asv
+*.autosave
