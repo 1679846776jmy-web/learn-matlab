@@ -120,3 +120,79 @@ disp(paths_ex);
 % [ ] 我知道 +fusionlearn 是 package folder。
 % [ ] 我能用配置函数集中管理路径。
 % [ ] 我能写一个 assert 检查结果。
+
+%% 9. 加厚练习 / Extra exercises
+%
+% 练习 A：用 which 找到 makeDemoSignal 函数。
+% 练习 B：用 exist 判断 data_paths_local 是否存在。
+% 练习 C：写一个临时结构体 config，包含 shot、timeStart_ms、timeEnd_ms。
+% 练习 D：用 assert 检查 timeEnd_ms 大于 timeStart_ms。
+% 练习 E：把一个长表达式拆成中间变量，让代码更容易读。
+
+disp(which("fusionlearn.io.makeDemoSignal"));
+hasLocalPaths = exist("data_paths_local", "file") == 2;
+fprintf("Has local private paths: %d\n", hasLocalPaths);
+
+config = struct();
+config.shot = 0;
+config.timeStart_ms = 5;
+config.timeEnd_ms = 10;
+assert(config.timeEnd_ms > config.timeStart_ms);
+
+rawSignal = demo_ex.signal;
+rawMean = mean(rawSignal);
+signalNoMean = rawSignal - rawMean;
+signalRms = sqrt(mean(signalNoMean.^2));
+fprintf("Signal RMS = %.3f\n", signalRms);
+
+%% 10. 小测验 / Mini quiz
+%
+% 选择题 1：重复使用的代码更适合放在哪里？
+% A. 函数
+% B. Figure 标题
+% C. 命令历史
+% 答案：A
+%
+% 选择题 2：`+fusionlearn` 文件夹表示：
+% A. MATLAB package folder
+% B. 自动备份目录
+% C. 图片文件夹
+% 答案：A
+%
+% 选择题 3：本机私有路径应该放在：
+% A. data_paths_local.m
+% B. 每个脚本最开头
+% C. README 标题里
+% 答案：A
+%
+% 选择题 4：`assert` 的主要作用是：
+% A. 检查程序结果是否满足条件
+% B. 自动画三维图
+% C. 上传 GitHub
+% 答案：A
+%
+% 选择题 5：函数内部变量默认：
+% A. 不会泄露到外部工作区
+% B. 自动保存到所有脚本
+% C. 只能是整数
+% 答案：A
+
+%% 11. 错题案例 / Debug the mistake
+%
+% 错题 1：函数名和脚本名随意，后续自己也找不到。
+%
+% 不推荐：
+% test1.m, newnew.m, aaa.m
+%
+% 推荐：
+% loadSignalData.m, plotSignalOverview.m, computePowerSpectrum.m
+%
+% 错题 2：把配置、计算、绘图全部写在一个超长脚本中。
+% 一个更好的主脚本结构如下：
+
+exampleConfig = struct("duration_ms", 5, "sampleRate_Hz", 20000);
+exampleData = fusionlearn.io.makeDemoSignal( ...
+    "DurationMs", exampleConfig.duration_ms, ...
+    "SampleRateHz", exampleConfig.sampleRate_Hz);
+exampleProcessed = exampleData.signal - mean(exampleData.signal);
+assert(numel(exampleProcessed) == numel(exampleData.signal));

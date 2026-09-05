@@ -137,3 +137,88 @@ assert(isequal(size(RR), size(psi)));
 % [ ] 我知道 imagesc 的 YDir 问题。
 % [ ] 我知道 R-Z 截面图为什么要 axis equal。
 
+%% 10. 加厚练习 / Extra exercises
+%
+% 练习 A：画 psi = 0.5 和 psi = 1.0 两条等值线。
+% 练习 B：用 axis image 和 axis equal 比较效果。
+% 练习 C：用 colormap turbo 改变色图。
+% 练习 D：计算 pressure 的最大值和最小值。
+% 练习 E：用逻辑索引找出 psi <= 1 的等离子体区域。
+
+insidePlasma = psi <= 1;
+pressureMin = min(pressure(:));
+pressureMax = max(pressure(:));
+fprintf("Pressure range: [%.3f, %.3f]\n", pressureMin, pressureMax);
+
+figure("Color", "w");
+contour(RR, ZZ, psi, [0.5 1.0], "LineWidth", 1.5);
+xlabel("R (m)");
+ylabel("Z (m)");
+title("Selected toy flux surfaces");
+axis equal tight;
+grid on;
+fusionlearn.plot.applyResearchStyle(gca);
+
+figure("Color", "w");
+imagesc(R, Z, insidePlasma);
+set(gca, "YDir", "normal");
+axis equal tight;
+colormap(gca, "gray");
+colorbar;
+xlabel("R (m)");
+ylabel("Z (m)");
+title("Inside plasma mask");
+fusionlearn.plot.applyResearchStyle(gca);
+
+%% 11. 小测验 / Mini quiz
+%
+% 选择题 1：构造二维网格常用：
+% A. meshgrid
+% B. legend
+% C. save
+% 答案：A
+%
+% 选择题 2：画等值线常用：
+% A. contour
+% B. whos
+% C. load
+% 答案：A
+%
+% 选择题 3：画二维彩色场常用：
+% A. contourf 或 imagesc
+% B. clc
+% C. addpath
+% 答案：A
+%
+% 选择题 4：R-Z 截面为了不变形，应常用：
+% A. axis equal
+% B. clear all
+% C. xlabel off
+% 答案：A
+%
+% 选择题 5：colorbar 的作用是：
+% A. 说明颜色和数值之间的对应关系
+% B. 自动修复数据
+% C. 删除坐标轴
+% 答案：A
+
+%% 12. 错题案例 / Debug the mistake
+%
+% 错题 1：忘记 set(gca, "YDir", "normal")，imagesc 的 Z 方向可能倒置。
+
+figure("Color", "w");
+imagesc(R, Z, pressure);
+set(gca, "YDir", "normal");
+axis equal tight;
+colorbar;
+xlabel("R (m)");
+ylabel("Z (m)");
+title("Correct image orientation");
+fusionlearn.plot.applyResearchStyle(gca);
+%
+% 错题 2：没有检查矩阵尺寸。
+
+assert(isequal(size(RR), size(psi)));
+assert(isequal(size(ZZ), size(pressure)));
+assert(any(insidePlasma(:)));
+

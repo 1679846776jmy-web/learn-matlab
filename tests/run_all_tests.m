@@ -8,6 +8,6 @@ addpath(fullfile(rootDir, "functions"));
 addpath(fullfile(rootDir, "data", "external_paths"));
 
 run(fullfile(rootDir, "tests", "test_phase1_basics.m"));
+run(fullfile(rootDir, "tests", "test_phase2_intro.m"));
 
 fprintf("All available tests passed.\n\n");
-

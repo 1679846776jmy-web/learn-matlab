@@ -4,5 +4,6 @@ data/small_samples/*
 data/simulated/*
 !data/simulated/README.md
 outputs/
+chapters_backup/
 *.asv
 *.autosave

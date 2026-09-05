@@ -22,16 +22,17 @@ startup_learning
 
 ## 第一批已完成内容
 
-本次先交付第一阶段的启动版本：
+当前已交付第一阶段启动版，并开始补充加厚版和阶段 2 起步版：
 
 1. 阶段拆分计划：`三阶段小计划.md`
 2. 总学习计划：`MATLAB聚变数据处理学习计划.md`
 3. 启动脚本：`startup_learning.m`
-4. 第一阶段讲义源文件：`chapters_src/Ch00` 到 `Ch06`
-5. 第一阶段 Live Script：`chapters/Ch00` 到 `Ch06`
-6. 基础函数库：`functions/+fusionlearn`
-7. 数据路径模板：`data/external_paths/data_paths_template.m`
-8. 基础测试：`tests/run_all_tests.m`
+4. 第一阶段原版 Live Script：`chapters/Ch00` 到 `Ch06`
+5. 第一阶段加厚版 Live Script：`chapters/Ch00` 到 `Ch06` 的 `_加厚版`
+6. 阶段 2 起步 Live Script：`Ch07` 和 `Ch08`
+7. 基础函数库：`functions/+fusionlearn`
+8. 数据路径模板：`data/external_paths/data_paths_template.m`
+9. 基础测试：`tests/run_all_tests.m`
 
 ## 学习建议
 
@@ -42,6 +43,8 @@ startup_learning
 3. 修改示例中的参数，观察输出变化。
 4. 独立完成练习，再看参考答案。
 5. 把不理解的问题写进自己的学习日志。
+
+如果你已经在原版 `.mlx` 中写了自己的笔记，请继续保留它们。后续新增内容会尽量放到新的讲义文件或源脚本中，避免覆盖个人学习记录。
 
 ## 真实数据说明
 
@@ -54,4 +57,3 @@ data/external_paths/data_paths_template.m
 ```
 
 如果后续用 Git 管理学习库，请不要提交自己的本地私有数据文件。
-

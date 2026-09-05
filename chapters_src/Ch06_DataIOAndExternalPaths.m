@@ -148,3 +148,75 @@ end
 % [ ] 我能保存和读取 TXT 文件。
 % [ ] 我知道 whos -file 的作用。
 % [ ] 我知道为什么不能随便 load 大 DBS 文件。
+
+%% 11. 加厚练习 / Extra exercises
+%
+% 练习 A：用 whos -file 查看 demo_signal_phase1.mat。
+% 练习 B：用 isfile 检查 CSV 文件是否存在。
+% 练习 C：用 height 查看 readBackTable 的行数。
+% 练习 D：用 contains 找出 DBS 变量名中包含 "I_" 的变量。
+% 练习 E：如果没有本地真实数据路径，解释为什么示例仍能继续学习。
+
+info_extra = whos("-file", matFile);
+assert(any(strcmp({info_extra.name}, "demo")));
+assert(isfile(csvFile));
+fprintf("CSV rows: %d\n", height(readBackTable));
+
+if exist("dbsInfo", "var")
+    dbsNames = string({dbsInfo.name});
+    iSignalNames = dbsNames(startsWith(dbsNames, "I_"));
+    fprintf("Detected I-channel variables: %d\n", numel(iSignalNames));
+else
+    fprintf("No local DBS info available; simulated data remains enough for this chapter.\n");
+end
+
+%% 12. 小测验 / Mini quiz
+%
+% 选择题 1：检查 MAT 文件变量但不加载全部数据，应使用：
+% A. whos -file
+% B. close all
+% C. title
+% 答案：A
+%
+% 选择题 2：读取 CSV 表格常用：
+% A. readtable
+% B. contour
+% C. eig
+% 答案：A
+%
+% 选择题 3：大 MAT 文件推荐优先尝试：
+% A. matfile 和分块读取
+% B. 直接 load 全部变量
+% C. 复制到 chapters
+% 答案：A
+%
+% 选择题 4：本地真实路径文件为什么不发布？
+% A. 它可能暴露私人目录和数据线索
+% B. MATLAB 不允许有路径文件
+% C. GitHub 不能显示 .m 文件
+% 答案：A
+%
+% 选择题 5：读入数据后第一步应该：
+% A. 检查变量名、尺寸、类型和单位线索
+% B. 立刻画最终论文图
+% C. 删除原始文件
+% 答案：A
+
+%% 13. 错题案例 / Debug the mistake
+%
+% 错题 1：直接 load 大文件。
+%
+% 错误写法：
+% hugeData = load(paths.dbsMatFile);
+%
+% 更稳的起步方式：
+if strlength(paths.dbsMatFile) > 0 && isfile(paths.dbsMatFile)
+    safeInfo = whos("-file", paths.dbsMatFile);
+    fprintf("Safe variable inspection count: %d\n", numel(safeInfo));
+end
+%
+% 错题 2：假设所有 MAT 文件里变量名都一样。
+% 正确方式：先检查变量名，再按实际变量名读取。
+
+availableNames = string({info.name});
+assert(any(availableNames == "demo"));

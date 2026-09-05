@@ -118,3 +118,72 @@ assert(numel(time_ms_answer) == numel(signal_answer));
 % [ ] 我能在 Live Script 中写代码和观察结论。
 % [ ] 我能用 who 查看变量。
 
+%% 9. 加厚练习 / Extra exercises
+%
+% 练习 A：创建变量 plasmaCurrent_MA = 0.6，并观察 Workspace。
+% 练习 B：把 time_ms_answer 改成 0:0.05:5，再观察点数变化。
+% 练习 C：用 whos 查看变量尺寸和类型。
+% 练习 D：创建一个 sectionNote 字符串，写一句英文观察。
+% 练习 E：用 clear sectionNote 清除一个变量，再用 who 检查。
+
+plasmaCurrent_MA = 0.6;
+time_ms_more_dense = 0:0.05:5;
+signal_more_dense = sin(2*pi*1.2*time_ms_more_dense);
+whos plasmaCurrent_MA time_ms_more_dense signal_more_dense
+
+sectionNote = "The workspace shows variables created by the current section.";
+disp(sectionNote);
+clear sectionNote
+assert(~any(strcmp(who, "sectionNote")));
+
+%% 10. 小测验 / Mini quiz
+%
+% 选择题 1：Run Section 的作用是什么？
+% A. 只运行当前代码节
+% B. 删除当前文件
+% C. 安装工具箱
+% 答案：A
+%
+% 选择题 2：Workspace 中能看到什么？
+% A. 当前变量名、尺寸和值的摘要
+% B. GitHub 仓库访问量
+% C. Windows 桌面图标
+% 答案：A
+%
+% 选择题 3：Live Script 适合科研学习，是因为它可以：
+% A. 混合文本、代码、图和输出
+% B. 自动替你理解物理
+% C. 代替所有测试
+% 答案：A
+%
+% 选择题 4：变量太多看不清时可以先用：
+% A. who 或 whos
+% B. plot
+% C. legend
+% 答案：A
+%
+% 选择题 5：初学时建议如何处理报错？
+% A. 先读报错行号和原因
+% B. 立刻删除整个文件
+% C. 忽略继续运行
+% 答案：A
+
+%% 11. 错题案例 / Debug the mistake
+%
+% 错题 1：误以为变量会自动跨 MATLAB 重启保存。
+%
+% 错误想法：
+% "我昨天在 Workspace 里有变量，今天打开 MATLAB 应该还在。"
+%
+% 正确理解：
+% Workspace 是当前会话内存。需要长期保存的数据，应写入 .mat 文件。
+
+tempValue = 42;
+tempMatFile = fullfile(tempdir, "phase1_workspace_demo.mat");
+save(tempMatFile, "tempValue");
+loadedTemp = load(tempMatFile, "tempValue");
+assert(loadedTemp.tempValue == 42);
+%
+% 错题 2：在不同代码节里使用变量，却忘记先运行产生变量的代码节。
+% 解决方式：从上到下运行，或者在当前节中显式创建所需变量。
+

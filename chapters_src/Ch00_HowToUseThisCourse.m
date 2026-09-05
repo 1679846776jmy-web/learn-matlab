@@ -134,3 +134,68 @@ fusionlearn.plot.applyResearchStyle(gca);
 % [ ] 我能查看 MATLAB 版本和工具箱。
 % [ ] 我知道 help 和 doc 的区别。
 % [ ] 我能运行并修改一个简单绘图例子。
+
+%% 10. 加厚练习 / Extra exercises
+%
+% 练习 A：用 fullfile 组合 learningRoot 和 "docs"，检查该目录是否存在。
+% 练习 B：用 dir 查看 chapters 文件夹下有多少个 .mlx 文件。
+% 练习 C：用 fprintf 打印一句英文学习记录：
+% "Today I learned how to start the MATLAB learning library."
+% 练习 D：用 which 查找 startup_learning.m 的位置。
+% 练习 E：用 exist 判断 fusionlearn.io.makeDemoSignal 是否可用。
+
+docsDir = fullfile(learningRoot, "docs");
+assert(isfolder(docsDir));
+
+chapterFiles = dir(fullfile(learningRoot, "chapters", "*.mlx"));
+fprintf("Live Script chapters found: %d\n", numel(chapterFiles));
+
+fprintf("Today I learned how to start the MATLAB learning library.\n");
+disp(which("startup_learning"));
+assert(strlength(string(which("fusionlearn.io.makeDemoSignal"))) > 0);
+
+%% 11. 小测验 / Mini quiz
+%
+% 选择题 1：Workspace 主要用来做什么？
+% A. 查看当前内存中的变量
+% B. 修改 MATLAB 安装目录
+% C. 删除所有函数
+% 答案：A
+%
+% 选择题 2：Current Folder 影响什么？
+% A. MATLAB 查找和运行文件的位置
+% B. CPU 运行速度
+% C. 图像颜色
+% 答案：A
+%
+% 选择题 3：Live Script 的文件扩展名是什么？
+% A. .mlx
+% B. .csv
+% C. .fig
+% 答案：A
+%
+% 选择题 4：快速查看函数简短帮助应优先用什么？
+% A. help
+% B. delete
+% C. close all
+% 答案：A
+%
+% 选择题 5：真实大数据应该放在哪里？
+% A. 学习库外部，通过路径配置读取
+% B. 直接复制进 chapters
+% C. 改名为 README
+% 答案：A
+
+%% 12. 错题案例 / Debug the mistake
+%
+% 错题 1：路径拼接不要手写斜杠。
+%
+% 错误写法：
+% badPath = learningRoot + "\docs";
+%
+% 更稳的写法：
+goodPath = fullfile(learningRoot, "docs");
+assert(isfolder(goodPath));
+%
+% 错题 2：不要用 cd 在脚本中频繁跳来跳去。
+% 更好的方式是用 fullfile 得到完整路径，把路径作为参数传给函数。

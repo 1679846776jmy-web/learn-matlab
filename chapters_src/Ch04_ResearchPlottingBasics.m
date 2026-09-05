@@ -136,3 +136,81 @@ fusionlearn.plot.applyResearchStyle(gca);
 % [ ] 我知道坐标轴必须写单位。
 % [ ] 我知道如何导出图片。
 
+%% 9. 加厚练习 / Extra exercises
+%
+% 练习 A：画一条红色虚线。
+% 练习 B：画两条曲线，并添加 legend。
+% 练习 C：把 x 轴限制在 2-8 ms。
+% 练习 D：把图保存到 outputs/figures，但先检查目录是否存在。
+% 练习 E：把图标题改为英文研究风格短标题。
+
+figure("Color", "w");
+plot(demo.time_ms, demo.signal, "r--", "LineWidth", 1.0);
+xlim([2 8]);
+xlabel("Time (ms)");
+ylabel("Signal (a.u.)");
+title("Windowed fluctuation signal");
+grid on;
+fusionlearn.plot.applyResearchStyle(gca);
+
+outputDir = fullfile(learningRoot, "outputs", "figures");
+if ~isfolder(outputDir)
+    mkdir(outputDir);
+end
+exportgraphics(gcf, fullfile(outputDir, "phase1_windowed_signal.png"), "Resolution", 150);
+assert(isfile(fullfile(outputDir, "phase1_windowed_signal.png")));
+
+%% 10. 小测验 / Mini quiz
+%
+% 选择题 1：科研图的坐标轴最好包含：
+% A. 物理量和单位
+% B. 随便一个字母
+% C. 文件夹路径
+% 答案：A
+%
+% 选择题 2：多子图推荐使用：
+% A. tiledlayout 和 nexttile
+% B. clear 和 clc
+% C. whos 和 who
+% 答案：A
+%
+% 选择题 3：误差棒常用函数是：
+% A. errorbar
+% B. surf
+% C. readtable
+% 答案：A
+%
+% 选择题 4：保存当前图像常用：
+% A. exportgraphics
+% B. load
+% C. exist
+% 答案：A
+%
+% 选择题 5：图例的作用是：
+% A. 区分不同曲线或数据组
+% B. 改变采样率
+% C. 自动计算积分
+% 答案：A
+
+%% 11. 错题案例 / Debug the mistake
+%
+% 错题 1：两条曲线没有图例，读者不知道谁是谁。
+
+t_plot = demo.time_ms;
+y1_plot = demo.signal;
+y2_plot = demo.signal - mean(demo.signal);
+
+figure("Color", "w");
+plot(t_plot, y1_plot, "Color", [0.5 0.5 0.5]);
+hold on;
+plot(t_plot, y2_plot, "b", "LineWidth", 1.1);
+xlabel("Time (ms)");
+ylabel("Signal (a.u.)");
+title("Raw and zero-mean signals");
+legend("Raw", "Zero-mean");
+grid on;
+fusionlearn.plot.applyResearchStyle(gca);
+%
+% 错题 2：保存图之前没有创建输出目录。
+% 正确做法：先 if ~isfolder(outputDir), mkdir(outputDir), end。
+

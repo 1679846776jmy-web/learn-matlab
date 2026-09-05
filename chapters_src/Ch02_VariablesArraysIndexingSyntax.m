@@ -140,3 +140,80 @@ assert(abs(answerData.sampleRate_Hz - 100000) < 1e-9);
 % [ ] 我知道 .*, ./, .^ 的作用。
 % [ ] 我能写一个 for 循环。
 % [ ] 我能用结构体保存一组信号数据。
+
+%% 10. 加厚练习 / Extra exercises
+%
+% 练习 A：生成列向量 rho = 0 到 1，共 101 个点。
+% 练习 B：构造 density = 5*(1-rho.^2)+0.2。
+% 练习 C：找出 density > 3 的所有位置。
+% 练习 D：用 if 判断最大 density 是否大于 5。
+% 练习 E：把 rho 和 density 放进 table。
+% 练习 F：用 mean 和 std 计算 signal_cut 的平均值和标准差。
+
+rho_extra = linspace(0, 1, 101).';
+density_extra = 5*(1 - rho_extra.^2) + 0.2;
+coreMask = density_extra > 3;
+
+if max(density_extra) > 5
+    disp("Peak density is above 5 in normalized units.");
+else
+    disp("Peak density is not above 5 in normalized units.");
+end
+
+profileTable = table(rho_extra, density_extra, coreMask);
+disp(profileTable(1:5, :));
+
+signalMean = mean(signal_cut);
+signalStd = std(signal_cut);
+fprintf("Selected signal mean = %.3f, std = %.3f\n", signalMean, signalStd);
+
+%% 11. 小测验 / Mini quiz
+%
+% 选择题 1：对向量逐元素平方应该写：
+% A. x.^2
+% B. x^2
+% C. x**2
+% 答案：A
+%
+% 选择题 2：选取 5 到 10 ms 的时间窗应该写：
+% A. time_ms >= 5 & time_ms <= 10
+% B. time_ms >= 5 && time_ms <= 10
+% C. 5 <= time_ms <= 10
+% 答案：A
+%
+% 选择题 3：查看数组尺寸应该用：
+% A. size
+% B. title
+% C. clear
+% 答案：A
+%
+% 选择题 4：结构体适合保存：
+% A. 一组有关系的数据和元信息
+% B. MATLAB 工具箱许可证
+% C. 只能保存一个数字
+% 答案：A
+%
+% 选择题 5：`A\b` 常用于：
+% A. 解线性方程 A*x=b
+% B. 画图
+% C. 清空变量
+% 答案：A
+
+%% 12. 错题案例 / Debug the mistake
+%
+% 错题 1：逻辑条件写法错误。
+%
+% 错误写法：
+% badMask = 5 <= demo.time_ms <= 10;
+%
+% 正确写法：
+goodMask = demo.time_ms >= 5 & demo.time_ms <= 10;
+assert(any(goodMask));
+assert(all(demo.time_ms(goodMask) >= 5 & demo.time_ms(goodMask) <= 10));
+%
+% 错题 2：行列方向混乱。
+
+rowVector = 1:5;
+columnVector = (1:5).';
+assert(isequal(size(rowVector), [1 5]));
+assert(isequal(size(columnVector), [5 1]));
