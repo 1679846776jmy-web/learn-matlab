@@ -5,9 +5,11 @@
 %   startup_learning
 %   run("tools/convert_chapters_to_mlx.m")
 %
-% By default, this script does not overwrite existing .mlx files. This
-% protects notes that may have been added while studying. Set the following
-% flag to true only when you intentionally want to regenerate outputs.
+% By default, this script does not overwrite existing .mlx files. The main
+% teaching files in chapters/ may contain user-authored learning notes and
+% should be treated as the canonical co-created lectures. Set the following
+% flag to true only when you intentionally want to regenerate outputs after
+% preserving or merging those notes.
 
 overwriteExisting = false;
 
