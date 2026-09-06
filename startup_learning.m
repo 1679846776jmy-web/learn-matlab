@@ -22,6 +22,5 @@ catch
     fprintf("MATLAB version information is unavailable.\n");
 end
 
-fprintf("Next step: open chapters/Ch00_如何使用这套讲义.mlx\n\n");
+fprintf("Next step: open chapters/Ch00_如何使用这套讲义_完结版.mlx\n\n");
 end
-

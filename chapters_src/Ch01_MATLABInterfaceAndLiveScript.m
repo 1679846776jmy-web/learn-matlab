@@ -111,6 +111,8 @@ set(gca, "FontName", "Arial", "FontSize", 11, "LineWidth", 1.0, ...
 disp(who);
 assert(shot == 13653);
 assert(numel(time_ms_answer) == numel(signal_answer));
+% assert（断言）会在程序运行时检测条件是否为真。
+% 如果条件为 false，程序会立即中断并抛出错误，适合检查数组长度、单位换算和数据范围。
 
 %% 8. 本章检查表
 %
@@ -188,3 +190,45 @@ assert(loadedTemp.tempValue == 42);
 %
 % 错题 2：在不同代码节里使用变量，却忘记先运行产生变量的代码节。
 % 解决方式：从上到下运行，或者在当前节中显式创建所需变量。
+
+%% 12. 共创补充：grid 和 plot 属性
+% grid 控制坐标轴网格线。科研图里常用 grid on 帮助读取数值；需要更细参考线时可以用 grid minor。
+
+x_grid = 0:0.1:2*pi;
+y_grid = sin(x_grid);
+
+figure("Color", "w");
+plot(x_grid, y_grid, "LineWidth", 1.3);
+xlabel("x");
+ylabel("sin(x)");
+title("Grid example");
+grid on;
+grid minor;
+set(gca, "FontName", "Arial", "FontSize", 11, "LineWidth", 1.0, ...
+    "Box", "on", "XGrid", "on", "YGrid", "on");
+
+%% 13. 共创补充：plot 常用属性
+% plot 可以同时控制线型、线宽、颜色、标记、图例标签等属性。
+% 学习时可以先模仿下面这个完整例子，再逐项删减，观察每个属性的作用。
+
+x_style = 0:pi/20:2*pi;
+y_style = sin(x_style);
+
+figure("Color", "w");
+plot(x_style, y_style, ...
+    "LineStyle", "--", ...              % 虚线
+    "LineWidth", 2, ...                 % 线宽
+    "Color", [0.2, 0.5, 0.9], ...       % 自定义 RGB 颜色
+    "Marker", "o", ...                  % 圆圈标记
+    "MarkerSize", 8, ...                % 标记大小
+    "MarkerEdgeColor", "b", ...         % 标记边框为蓝色
+    "MarkerFaceColor", [1, 0.8, 0], ... % 标记填充为黄色
+    "MarkerIndices", 1:2:length(x_style), ... % 每隔一个点画一个标记
+    "DisplayName", "sin(x)");           % 图例标签
+xlabel("x");
+ylabel("sin(x)");
+title("Styled plot example");
+legend("show", "Location", "best");
+grid on;
+set(gca, "FontName", "Arial", "FontSize", 11, "LineWidth", 1.0, ...
+    "Box", "on", "XGrid", "on", "YGrid", "on");
