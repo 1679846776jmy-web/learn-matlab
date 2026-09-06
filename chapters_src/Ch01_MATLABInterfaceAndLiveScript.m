@@ -48,7 +48,8 @@ xlabel("Time (ms)");
 ylabel("Signal (a.u.)");
 title("A signal section in Live Script");
 grid on;
-fusionlearn.plot.applyResearchStyle(gca);
+set(gca, "FontName", "Arial", "FontSize", 11, "LineWidth", 1.0, ...
+    "Box", "on", "XGrid", "on", "YGrid", "on");
 
 %% 3. 在讲义里写观察结论
 % 运行上面的代码后，你应该观察：
@@ -104,7 +105,8 @@ xlabel("Time (ms)");
 ylabel("Amplitude (a.u.)");
 title("Demo fluctuation signal");
 grid on;
-fusionlearn.plot.applyResearchStyle(gca);
+set(gca, "FontName", "Arial", "FontSize", 11, "LineWidth", 1.0, ...
+    "Box", "on", "XGrid", "on", "YGrid", "on");
 
 disp(who);
 assert(shot == 13653);
@@ -186,4 +188,3 @@ assert(loadedTemp.tempValue == 42);
 %
 % 错题 2：在不同代码节里使用变量，却忘记先运行产生变量的代码节。
 % 解决方式：从上到下运行，或者在当前节中显式创建所需变量。
-
