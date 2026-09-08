@@ -22,13 +22,13 @@ startup_learning
 
 ## 第一批已完成内容
 
-当前已交付阶段 1 完结版和阶段 2 起步版：
+当前已交付阶段 1 完结版和阶段 2 计算物理起步内容：
 
 1. 阶段拆分计划：`三阶段小计划.md`
 2. 总学习计划：`MATLAB聚变数据处理学习计划.md`
 3. 启动脚本：`startup_learning.m`
 4. 阶段 1 完结版 Live Script：`chapters/Ch00` 到 `Ch06` 的 `_完结版.mlx`
-5. 阶段 2 起步完结版 Live Script：`Ch07` 和 `Ch08` 的 `_完结版.mlx`
+5. 阶段 2 起步完结版 Live Script：`Ch07` 到 `Ch10` 的 `_完结版.mlx`
 6. 共创维护规则：`docs/共创维护规则.md`
 7. 基础函数库：`functions/+fusionlearn`
 8. 数据路径模板：`data/external_paths/data_paths_template.m`

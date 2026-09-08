@@ -31,6 +31,8 @@ chapterMap = {
     "Ch06_DataIOAndExternalPaths.m", "Ch06_数据读写与外部数据路径配置_完结版.mlx"
     "Ch07_MatrixComputingLinearAlgebra.m", "Ch07_矩阵计算线性方程特征值与SVD_完结版.mlx"
     "Ch08_IntegrationDifferentiationInterpolation.m", "Ch08_数值积分微分偏导与插值_完结版.mlx"
+    "Ch09_ODEPhysicalModelCases.m", "Ch09_ODE求解与物理模型案例_完结版.mlx"
+    "Ch10_PDEFiniteDifferenceTransport.m", "Ch10_PDE有限差分入门与一维输运模型_完结版.mlx"
 };
 
 for k = 1:size(chapterMap, 1)

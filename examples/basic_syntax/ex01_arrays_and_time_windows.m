@@ -1,6 +1,10 @@
 %EX01_ARRAYS_AND_TIME_WINDOWS Basic arrays and logical indexing.
 
 clear; clc; close all;
+learningRoot = fileparts(fileparts(fileparts(mfilename("fullpath"))));
+addpath(learningRoot);
+addpath(fullfile(learningRoot, "functions"));
+addpath(fullfile(learningRoot, "data", "external_paths"));
 startup_learning;
 
 demo = fusionlearn.io.makeDemoSignal("DurationMs", 20, "SampleRateHz", 100000);
@@ -22,4 +26,3 @@ fusionlearn.plot.applyResearchStyle(gca);
 
 assert(numel(time_cut) == numel(signal_cut));
 assert(all(time_cut >= 8 & time_cut <= 12));
-

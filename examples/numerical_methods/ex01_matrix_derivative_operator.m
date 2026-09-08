@@ -1,6 +1,10 @@
 %EX01_MATRIX_DERIVATIVE_OPERATOR Build and test a finite-difference matrix.
 
 clear; clc; close all;
+learningRoot = fileparts(fileparts(fileparts(mfilename("fullpath"))));
+addpath(learningRoot);
+addpath(fullfile(learningRoot, "functions"));
+addpath(fullfile(learningRoot, "data", "external_paths"));
 startup_learning;
 
 n = 101;
@@ -28,4 +32,3 @@ grid on;
 fusionlearn.plot.applyResearchStyle(gca);
 
 assert(maxError < 1e-2);
-

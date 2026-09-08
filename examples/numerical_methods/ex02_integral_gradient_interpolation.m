@@ -1,6 +1,10 @@
 %EX02_INTEGRAL_GRADIENT_INTERPOLATION Practice integration, gradients, and interpolation.
 
 clear; clc; close all;
+learningRoot = fileparts(fileparts(fileparts(mfilename("fullpath"))));
+addpath(learningRoot);
+addpath(fullfile(learningRoot, "functions"));
+addpath(fullfile(learningRoot, "data", "external_paths"));
 startup_learning;
 
 x = linspace(0, pi, 101).';
@@ -31,4 +35,3 @@ F = RR.^2 + 2*ZZ.^2;
 
 assert(max(abs(dFdr(:) - 2*RR(:))) < 0.05);
 assert(max(abs(dFdz(:) - 4*ZZ(:))) < 0.1);
-
