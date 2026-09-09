@@ -7,3 +7,11 @@ outputs/
 chapters_backup/
 *.asv
 *.autosave
+
+# Personal planning and repository-maintenance notes are kept local.
+三阶段小计划.md
+MATLAB聚变数据处理学习计划.md
+docs/公开发布审查.md
+docs/共创维护规则.md
+docs/第一阶段完结版说明.md
+docs/阶段2起步说明.md
