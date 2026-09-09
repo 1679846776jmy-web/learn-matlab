@@ -35,6 +35,21 @@ fprintf("exact result    = %.8f\n", 2.0);
 assert(abs(area_trapz - 2) < 1e-3);
 assert(abs(area_integral - 2) < 1e-12);
 
+%% 1.1 两种积分函数解决的输入问题不同
+% trapz 面向已经采样的离散数据 `(x,y)`，用相邻点构成梯形并求和。x 可以非均匀，
+% 但必须与 y 对应且顺序合理。若只写 `trapz(y)`，MATLAB 默认相邻样本间距为 1，
+% 结果会少乘真实 dx，因此带物理坐标时应显式传入 x。
+%
+% integral 面向可调用的函数句柄，它会自适应选择采样位置以达到误差要求。真实诊断
+% 数据通常只有离散采样，不能把一组 y 值直接交给 integral；解析模型或可计算的右端
+% 函数则适合使用 integral。
+%
+% 积分结果的单位等于 y 单位乘 x 单位。例如功率 W 对时间 s 积分得到能量 J。
+
+areaWithoutX = trapz(y);
+fprintf("trapz(y) = %.4f while trapz(x,y) = %.4f.\n", ...
+    areaWithoutX, area_trapz);
+
 %% 2. 累积积分：cumtrapz
 % cumtrapz 能显示积分量如何沿着坐标逐渐累积。
 
@@ -47,6 +62,18 @@ ylabel("Cumulative integral");
 title("Cumulative integral of sin(x)");
 grid on;
 fusionlearn.plot.applyResearchStyle(gca);
+
+%% 2.1 累积积分保留“积分到哪里”的信息
+% trapz 最终只返回一个总量，cumtrapz 返回与输入相同长度的累计量。第 k 个元素表示
+% 从起点积分到 x(k) 的结果，因此可用于观察能量、粒子源或通量怎样随时间/半径累积。
+%
+% 累积曲线的起点默认是 0。如果实际问题在起点已有非零存量，应在结果上加初值。
+% 累积积分会平滑高频噪声，但传感器的微小偏置会不断累积，最终形成明显漂移。
+
+initialInventory = 0.4;
+cumulativeWithInitial = initialInventory + cumulativeArea;
+fprintf("Cumulative integral including initial value ends at %.4f.\n", ...
+    cumulativeWithInitial(end));
 
 %% 3. 数值微分：diff、gradient 和中心差分
 % diff 会让结果少一个点。
@@ -79,6 +106,24 @@ fusionlearn.plot.applyResearchStyle(gca);
 
 assert(errCustom < 1e-4);
 
+%% 3.1 数值微分为什么会放大噪声
+% 导数由相邻点之差再除以很小的 dx。若每个点带独立噪声，相减后噪声不会自动抵消，
+% 再除以 dx 反而会把扰动放大。网格更密并不保证带噪导数更好，因为 dx 也更小。
+%
+% 中心差分在内部点使用左右两侧，通常比简单前向差分精度高；边界处缺少一侧数据，
+% 常改用单边公式。gradient 帮你处理长度和边界，但仍不能消除噪声和单位问题。
+%
+% 实际流程通常先画原始数据、评估噪声，再根据物理时间/空间尺度选择平滑、拟合或
+% 正则化方法，最后检查导数对参数是否稳定。平滑过强也会抹掉真实陡峭结构。
+
+rng(8);
+noisyY = yFine + 0.01*randn(size(yFine));
+noisyDerivative = gradient(noisyY, xFine);
+cleanDerivativeError = sqrt(mean((dy_dx_gradient-dy_dx_exact).^2));
+noisyDerivativeError = sqrt(mean((noisyDerivative-dy_dx_exact).^2));
+fprintf("Derivative RMS error: clean %.3e, noisy %.3e.\n", ...
+    cleanDerivativeError, noisyDerivativeError);
+
 %% 4. 偏导数：二维网格上的 gradient
 % 在 R-Z 平面中，经常需要计算 psi(R,Z) 的梯度。
 
@@ -106,6 +151,19 @@ title("Toy flux and its gradient");
 axis equal tight;
 fusionlearn.plot.applyResearchStyle(gca);
 
+%% 4.1 二维 gradient 的顺序必须与矩阵布局一致
+% psi 的尺寸是 numel(Z) x numel(R)：列方向沿 R 变化，行方向沿 Z 变化。因此本项目
+% 的 gradient2DUniform 明确接收 R、Z 和 psi，并返回 dPsi_dR、dPsi_dZ。
+%
+% 偏导单位来自“场量单位/坐标单位”。若 psi 单位为 Wb，R、Z 单位为 m，则梯度分量
+% 单位为 Wb/m。quiver 箭头常会自动缩放以便显示，所以图上箭头长度不一定能直接当作
+% 绝对数值；定量分析仍应查看数组或统一缩放规则。
+%
+% 验证偏导的好方法是使用已知解析答案的函数，例如 F=R^2+Z^2，其导数应为 2R、2Z。
+
+fprintf("psi size = %d x %d; d/dR size = %d x %d.\n", ...
+    size(psi,1), size(psi,2), size(dPsi_dR,1), size(dPsi_dR,2));
+
 %% 5. 一维插值
 % 实验剖面经常来自不规则位置，需要插值到统一网格。
 
@@ -129,6 +187,22 @@ title("Profile interpolation");
 legend("Data", "Linear", "PCHIP");
 grid on;
 fusionlearn.plot.applyResearchStyle(gca);
+
+%% 5.1 插值、拟合和外推不是一回事
+% 插值在已知采样点之间估计数值，通常要求曲线穿过原始点；拟合允许不穿过每个点，
+% 目标是从含噪数据估计整体趋势或模型参数。外推是在数据范围之外估计，风险通常最高。
+%
+% linear 在相邻点间连直线，稳健且容易解释；pchip 尽量保持局部形状和单调性；spline
+% 更光滑，但在陡峭或稀疏数据附近可能过冲。方法选择取决于物理形状和用途，而不是
+% “哪条线看起来最圆滑”。
+%
+% 插值不会创造新的独立信息。把 12 个点插成 1001 个点，只是得到更密的表示，不会
+% 把测量分辨率真的提高到 1001 个独立观测。
+
+originalPointRecovery = interp1(rho_sparse, temperature_sparse, ...
+    rho_sparse, "pchip");
+fprintf("PCHIP recovers original points with max error %.3e.\n", ...
+    max(abs(originalPointRecovery-temperature_sparse)));
 
 %% 6. 常见错误 / Common mistakes
 %
@@ -230,4 +304,3 @@ assert(numel(yq_good) == numel(xq_good));
 % [ ] 我能计算一维数值导数。
 % [ ] 我能在 R-Z 网格上计算偏导。
 % [ ] 我能把稀疏剖面插值到统一网格。
-

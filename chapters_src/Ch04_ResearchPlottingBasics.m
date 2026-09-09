@@ -4,6 +4,7 @@
 % 1. 掌握常用二维科研图。
 % 2. 学会坐标轴、单位、图例和多子图。
 % 3. 建立可复用的绘图风格。
+% 4. 能解释图中每个视觉元素对应什么数据和不确定性。
 %
 % Key terms:
 % figure, axis label, legend, error bar, subplot, tiled layout, export
@@ -29,6 +30,24 @@ title("Synthetic diagnostic signal");
 legend("raw signal");
 grid on;
 fusionlearn.plot.applyResearchStyle(gca);
+
+%% 1.1 figure、axes 和曲线对象是什么关系
+% figure 是整张图窗，axes 是带坐标系的绘图区，plot 创建的 line 是 axes 内的图形对象。
+% 标题、坐标轴、图例并不是数据本身，而是帮助读者正确解释数据的上下文。
+%
+% `gcf` 表示当前 figure，`gca` 表示当前 axes。把返回的句柄保存下来，比反复依赖
+% “当前对象”更稳妥，尤其是在一张图里有多个 axes 时。
+
+figHandle = figure("Color", "w");
+axesHandle = axes(figHandle);
+lineHandle = plot(axesHandle, demo.time_ms, demo.signal, ...
+    "LineWidth", 1.0);
+xlabel(axesHandle, "Time (ms)");
+ylabel(axesHandle, "Signal (a.u.)");
+title(axesHandle, "Figure, axes, and line objects");
+grid(axesHandle, "on");
+fprintf("Created object classes: %s, %s, %s.\n", ...
+    class(figHandle), class(axesHandle), class(lineHandle));
 
 %% 2. 多子图：原始信号、去均值信号、直方图
 
@@ -58,6 +77,26 @@ ylabel("Counts");
 title("Amplitude distribution");
 fusionlearn.plot.applyResearchStyle(gca);
 
+%% 2.1 多子图不是为了塞更多图，而是为了建立比较
+% tiledlayout 决定版面，nexttile 决定下一条绘图命令落在哪个 axes。多个面板最好共享
+% 明确的比较逻辑，例如原始量、处理后量、分布；不要把毫不相关的图只因“空位还在”
+% 放到一起。
+%
+% 比较同一时间段时，各面板 xlim 应一致。可以保存 axes 句柄并用 linkaxes 联动缩放。
+% 不同物理量可以拥有不同 y 轴范围，但每个 y 标签都必须带名称和单位。
+
+comparisonFigure = figure("Color", "w");
+comparisonLayout = tiledlayout(comparisonFigure, 2, 1, ...
+    "TileSpacing", "compact");
+axRaw = nexttile(comparisonLayout);
+plot(axRaw, demo.time_ms, demo.signal);
+ylabel(axRaw, "Raw (a.u.)");
+axProcessed = nexttile(comparisonLayout);
+plot(axProcessed, demo.time_ms, signal_zero_mean);
+xlabel(axProcessed, "Time (ms)");
+ylabel(axProcessed, "Zero-mean (a.u.)");
+linkaxes([axRaw, axProcessed], "x");
+
 %% 3. 剖面和误差棒
 % 科研图中，坐标轴必须写物理量和单位。
 
@@ -73,6 +112,18 @@ title("Profile with uncertainty");
 grid on;
 fusionlearn.plot.applyResearchStyle(gca);
 
+%% 3.1 误差棒的长度必须有统计或仪器含义
+% errorbar 的第三个输入只是数值，MATLAB 不知道它代表标准差、标准误、置信区间，
+% 还是仪器标称误差。这个含义必须由变量名、图注或正文说明。
+%
+% 对称误差只需要一个 yneg/ypos 数组；不对称误差可以分别给出下误差和上误差。
+% 如果误差随半径变化，数组尺寸必须与剖面一致。误差棒非常密时，可以减少 marker
+% 数量或只画代表性采样点，但不能为了图好看随意缩短误差。
+
+relativeError = temperature_error ./ temperature_keV;
+fprintf("Relative uncertainty ranges from %.1f%% to %.1f%%.\n", ...
+    100*min(relativeError), 100*max(relativeError));
+
 %% 4. 图形导出
 % exportgraphics 可以把图保存为 PNG、PDF 等格式。
 % 这里为了避免自动生成太多文件，只展示推荐写法。
@@ -82,6 +133,16 @@ fusionlearn.plot.applyResearchStyle(gca);
 %     mkdir(outputDir);
 % end
 % exportgraphics(gcf, fullfile(outputDir, "temperature_profile.png"), "Resolution", 300);
+
+%% 4.1 PNG、PDF 和分辨率怎样选
+% PNG 是栅格图，适合包含 imagesc、复杂填色或用于网页/幻灯片；分辨率决定放大后的
+% 清晰度。PDF 常能保留线条和文字的矢量信息，适合论文中的曲线和等值线。
+%
+% 导出前先固定图窗内容和尺寸，避免使用屏幕截图。文件名应描述物理内容或 case，
+% 不要长期积累 `figure1_final_new2.png` 这类无法追溯的名字。
+%
+% 颜色还要考虑打印、色觉差异和黑白阅读。多条曲线最好同时使用颜色、线型和 marker，
+% 不要只依赖非常接近的两种颜色。
 
 %% 5. 常见错误 / Common mistakes
 %
@@ -213,4 +274,3 @@ fusionlearn.plot.applyResearchStyle(gca);
 %
 % 错题 2：保存图之前没有创建输出目录。
 % 正确做法：先 if ~isfolder(outputDir), mkdir(outputDir), end。
-

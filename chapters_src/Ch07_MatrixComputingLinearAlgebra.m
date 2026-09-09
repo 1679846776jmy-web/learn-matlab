@@ -32,6 +32,21 @@ disp(x);
 
 assert(norm(A*x - b) < 1e-12);
 
+%% 1.1 先读尺寸，再读线性方程的物理意义
+% `A*x=b` 中，A 的每一行代表一个方程，每一列代表一个未知量；b 的元素数必须等于
+% 方程数，x 的元素数等于未知量数。本例是 2 个方程、2 个未知量，所以 A 为 2x2，
+% b 和 x 都是 2x1。
+%
+% 在真实计算中，A 可能来自离散方程、响应矩阵或最小二乘模型。矩阵元素和未知量
+% 往往带单位，因此“尺寸正确”只是第一步，量纲也必须让每一行方程成立。
+%
+% 求得 x 后不要只看数值，要计算残差 `r=A*x-b`。残差接近 0 表示数值上满足这组
+% 方程，但不自动证明模型、数据或边界条件正确。
+
+linearResidual = A*x - b;
+fprintf("A is %d x %d and residual norm is %.3e.\n", ...
+    size(A, 1), size(A, 2), norm(linearResidual));
+
 %% 2. 不推荐显式求逆
 % 初学时常写 inv(A)*b，但数值计算中更推荐 A\b。
 
@@ -42,6 +57,22 @@ fprintf("Difference between two solutions: %.3e\n", norm(x_backslash - x_inverse
 %
 % English sentence:
 % The backslash operator is preferred for solving linear systems.
+
+%% 2.1 反斜杠不是“除法的另一种写法”
+% `A\b` 是线性系统求解运算。MATLAB 会根据 A 的形状和结构选择合适算法，例如
+% 方阵求解、三角系统或最小二乘。它通常比先算 inv(A) 再乘 b 更快、更稳定，也
+% 避免显式构造一个本来不需要的逆矩阵。
+%
+% 当 A 不是方阵时，`A\b` 往往给出最小二乘意义下的解；当方程欠定、矩阵秩不足
+% 或病态时，解的解释会更复杂。此时应检查 `rank(A)`、`cond(A)`、残差和问题本身
+% 是否有足够独立信息。
+
+overdeterminedA = [1 0; 1 1; 1 2];
+overdeterminedB = [1.0; 2.1; 2.9];
+leastSquaresX = overdeterminedA \ overdeterminedB;
+leastSquaresResidual = overdeterminedA*leastSquaresX - overdeterminedB;
+fprintf("Least-squares residual norm = %.3e.\n", ...
+    norm(leastSquaresResidual));
 
 %% 3. 特征值和特征向量
 % 特征值问题 A*v = lambda*v 常用于模态、稳定性和振荡问题。
@@ -54,6 +85,18 @@ disp(eigenvalues);
 
 firstResidual = norm(A*V(:,1) - eigenvalues(1)*V(:,1));
 assert(firstResidual < 1e-12);
+
+%% 3.1 特征值描述某些方向被矩阵怎样缩放
+% 若非零向量 v 满足 A*v=lambda*v，矩阵作用后方向不变，只被 lambda 缩放，这个 v
+% 是特征向量。动力系统线性化后，特征值实部常与增长/衰减有关，虚部常与振荡频率
+% 有关；具体解释仍取决于方程形式和单位。
+%
+% eig 返回的顺序通常不应被当作固定规则。参数扫描中若要跟踪同一个模态，不能简单
+% 假设“第 1 个特征值永远是同一模态”，还要比较数值邻近性或特征向量相似度。
+% 特征向量的长度和正负号/复相位也不是唯一的，验证时应检查方程残差。
+
+allEigenResiduals = vecnorm(A*V - V*D);
+fprintf("Largest eigenpair residual = %.3e.\n", max(allEigenResiduals));
 
 %% 4. SVD 入门
 % SVD 可以用于降噪、数据压缩和模态分析。
@@ -75,6 +118,26 @@ ylabel("Singular value");
 title("Singular values of a noisy signal matrix");
 grid on;
 fusionlearn.plot.applyResearchStyle(gca);
+
+%% 4.1 SVD 把数据拆成“模式、强度和系数”
+% 对 m x n 矩阵 X，经济型 SVD 写成 X=U*S*V'。U 的列可看成左侧模式，S 对角线
+% 是从大到小排列的奇异值，V 描述这些模式在另一维度上的组合。
+%
+% 截断到前 k 个奇异值可得到秩 k 近似。若少数奇异值明显占主导，数据可能包含
+% 低维结构；但把小奇异值全部当作噪声并不总正确，弱物理信号也可能位于较小模式中。
+%
+% 常用能量占比是奇异值平方的累计比例。选择 k 时同时看占比、重建误差、残差结构
+% 和物理解释。
+
+kKeep = 2;
+rankKApproximation = U(:, 1:kKeep) * S(1:kKeep, 1:kKeep) ...
+    * Vsvd(:, 1:kKeep)';
+capturedFraction = sum(singularValues(1:kKeep).^2) ...
+    / sum(singularValues.^2);
+relativeReconstructionError = norm(noisyMatrix-rankKApproximation, "fro") ...
+    / norm(noisyMatrix, "fro");
+fprintf("First %d modes capture %.2f%%; relative error %.3f.\n", ...
+    kKeep, 100*capturedFraction, relativeReconstructionError);
 
 %% 5. 有限差分矩阵
 % 二阶导数 d2u/dx2 可以写成矩阵乘法 D2*u。
@@ -106,6 +169,17 @@ fusionlearn.plot.applyResearchStyle(gca);
 
 assert(maxError < 1e-2);
 
+%% 5.1 差分矩阵的内部行和边界行含义不同
+% 对均匀网格，内部点二阶差分使用 `[1 -2 1]/dx^2`，所以 D2 的一行只连接当前点
+% 及左右邻点。把所有内部点公式叠起来，就得到矩阵乘法 D2*y。
+%
+% 边界点没有完整的左右邻居，必须根据边界条件另行处理。本例函数的 "interior"
+% 模式重点演示内部算子，因此误差只在 `2:n-1` 检查。真实 PDE 程序不能把边界行
+% 当作无关细节；它们决定了方程问题是否闭合以及解的物理行为。
+%
+% 网格缩小一半时，二阶中心差分的内部截断误差理论上约缩小到四分之一。通过多组
+% 网格验证这个趋势，叫网格收敛检查。
+
 %% 6. 稀疏矩阵
 % PDE 离散后经常得到很大的矩阵，但很多元素是 0。
 % sparse matrix 可以节省内存和计算时间。
@@ -116,6 +190,18 @@ fprintf("Number of nonzero entries: %d\n", nnz(D2));
 figure("Color", "w");
 spy(D2);
 title("Sparsity pattern of D2");
+
+%% 6.1 稀疏矩阵只存“非零结构和值”
+% 普通 n x n double 矩阵即使大部分为 0，也要为 n^2 个元素分配空间。sparse 主要
+% 保存非零值及其位置。局部有限差分每个网格点只连接少量邻居，因此非零数通常随 n
+% 线性增长，而不是随 n^2 增长。
+%
+% `nnz` 统计非零元素，`spy` 显示非零位置。稀疏并不保证所有运算都快；若中途把它
+% 转成 full，或执行会产生大量填充的操作，内存仍可能迅速增加。
+
+fullBytesEstimate = numel(D2) * 8;
+fprintf("A full double D2 would need about %.1f KiB before overhead.\n", ...
+    fullBytesEstimate/1024);
 
 %% 7. 常见错误 / Common mistakes
 %
@@ -220,4 +306,3 @@ assert(residual < 1e-12);
 % [ ] 我能计算特征值和 SVD。
 % [ ] 我能构造一个二阶导数矩阵。
 % [ ] 我知道 sparse 矩阵为什么重要。
-

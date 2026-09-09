@@ -56,6 +56,21 @@ fusionlearn.plot.applyResearchStyle(gca);
 
 assert(maxCoolingError < 1e-4);
 
+%% 1.1 ODE 初值问题包含“规律”和“起点”
+% `dT/dt=-T/tau` 只告诉我们每个状态下的变化率，还需要初始条件 T(t0)=T0 才能
+% 决定唯一演化轨迹。相同方程配不同 y0，会得到形状相似但起点不同的解。
+%
+% 右端函数输出单位必须是“状态量单位/时间单位”。若 T 用 keV、t 用 s，则 dT/dt
+% 应为 keV/s，tau 也必须用 s。把 ms 数值直接放进以 s 为时间的方程，会把时间尺度
+% 改变 1000 倍。
+%
+% tau 是 e-folding time：经过一个 tau，指数衰减量变为初值的 exp(-1)，约 36.8%。
+% 这比只把 tau 当作公式中的参数更容易形成物理直觉。
+
+temperatureAfterOneTau = y0*exp(-1);
+fprintf("At one time constant, T/T0 = %.4f.\n", ...
+    temperatureAfterOneTau/y0);
+
 %% 2. ode45 的四个关键输入
 % ode45 最常见的调用方式：
 %
@@ -72,6 +87,21 @@ opts = odeset("RelTol", 1e-6, "AbsTol", 1e-9);
 fprintf("Default ode45 points: %d\n", numel(time_s));
 fprintf("Tighter ode45 points: %d\n", numel(time_tight));
 assert(abs(temperature_tight(end) - y0*exp(-time_tight(end)/tau_s)) < 1e-6);
+
+%% 2.1 ode45 会自适应选择内部时间步
+% 当 tspan 只有 `[t0 tf]` 两个端点时，求解器根据局部误差自动决定输出时间点。
+% RelTol 控制相对误差尺度，AbsTol 在状态接近 0 时提供绝对误差下限。容差更严格
+% 往往需要更多步，但“输出点更多”不等于物理时间分辨率自动提高。
+%
+% 若 tspan 是一个时间向量，求解器会在这些指定时间返回插值后的解；它内部仍可能
+% 使用不同步长。比较两个解时，应先把它们放在相同时间点，而不是直接逐行相减。
+%
+% AbsTol 最好与各状态的数量级相匹配。多变量系统若一个量约 1e6、另一个约 1e-8，
+% 单一绝对容差可能不合适，可以为每个状态指定不同 AbsTol。
+
+adaptiveSteps_s = diff(time_tight);
+fprintf("ode45 output step range: [%.3e, %.3e] s.\n", ...
+    min(adaptiveSteps_s), max(adaptiveSteps_s));
 
 %% 3. 多变量 ODE：状态向量
 % 如果系统有多个变量，就把它们放进一个列向量。
@@ -106,6 +136,22 @@ assert(all(isfinite(state), "all"));
 assert(n20(end) > n20(1));
 assert(Te_keV(end) > Te_keV(1));
 
+%% 3.1 状态向量和参数 struct 是两种不同角色
+% 状态 y 是求解器不断更新的未知量；params 是一次求解期间保持不变的模型设置。
+% 右端函数必须返回与 y 相同形状的列向量，每一项顺序始终对应同一个物理量。
+%
+% 匿名函数 `@(t,y) model(t,y,params)` 把 MATLAB 求解器要求的两个输入接口，与我们
+% 自己模型需要的额外参数连接起来。创建匿名函数时，当前 params 值会被捕获；以后
+% 改 params 不会自动改写已经创建的旧函数句柄，重新扫描时应创建新句柄。
+%
+% y(1)、y(2) 很紧凑，但变量多后容易忘记顺序。可以在右端函数开头立即用清楚名字
+% 解包，在函数末尾按固定顺序组装 dydt，并在注释中写单位。
+
+plasmaRhs = @(t, y) fusionlearn.plasma.toyZeroDPlasmaRhs(t, y, params);
+initialSlope = plasmaRhs(tspan_plasma(1), y0_plasma);
+fprintf("Initial dn/dt = %.3f and dTe/dt = %.3f.\n", ...
+    initialSlope(1), initialSlope(2));
+
 %% 4. 画出零维模型结果
 % 一个 ODE 结果通常至少要画：
 %
@@ -123,6 +169,20 @@ ylabel("n_e (10^{20} m^{-3})");
 title("Toy density evolution");
 grid on;
 fusionlearn.plot.applyResearchStyle(gca);
+
+%% 4.1 ODE 图至少要接受三层检查
+% 数值层：数组是否 finite，时间是否递增，容差改变后结果是否基本稳定。
+%
+% 量纲层：横轴与求解时间单位一致，状态量单位写清楚，数量级没有 1000 倍误差。
+%
+% 物理层：密度、温度是否越过不允许范围，初始变化方向是否符合源项和损失项，长期
+% 行为是否趋于合理平衡。求解器只负责近似方程，不会告诉你方程本身是否遗漏了物理。
+%
+% “零维”表示没有空间坐标，只追踪体平均或简化状态随时间变化。它适合学习耦合、
+% 时间尺度和参数扫描，但不能给出径向剖面、边界层或湍流空间结构。
+
+fprintf("Final toy state: n20 = %.3f, Te = %.3f keV.\n", ...
+    n20(end), Te_keV(end));
 
 nexttile;
 plot(1e3*time_plasma_s, Te_keV, "LineWidth", 1.3);
@@ -160,6 +220,21 @@ fusionlearn.plot.applyResearchStyle(gca);
 
 assert(all(diff(finalTe) > 0));
 
+%% 5.1 参数扫描必须保持比较条件一致
+% 扫描某一个参数时，初值、时间范围、容差和其他参数应保持一致。代码里先复制
+% `paramsScan=params`，再改一个字段，可以避免上一轮修改泄漏到下一轮。
+%
+% 每个 case 除了最终标量，还应记录完整参数或 case 表。否则看到一条异常曲线时，
+% 无法追溯它对应哪组设置。扫描结果单调并不是必然真理；本例中的单调关系来自这个
+% 简化模型，在更复杂系统里反馈、阈值和不稳定性可能产生非单调响应。
+%
+% 图例适合少量 case。参数很多时，更适合画“参数-指标”曲线、热图或 table，而不是
+% 把几十条时间曲线叠在一张图中。
+
+scanSummary = table(heatingGainList.', finalTe.', ...
+    'VariableNames', ["HeatingGain_keV", "FinalTe_keV"]);
+disp(scanSummary);
+
 %% 6. ode15s 的位置
 % ode45 适合很多非刚性问题。
 % ode15s 常用于刚性问题，也就是系统里同时存在很快和很慢的时间尺度。
@@ -173,6 +248,15 @@ assert(all(diff(finalTe) > 0));
 finalDifference = norm(state_15s(end,:) - state(end,:));
 fprintf("Final state difference between ode45 and ode15s: %.3e\n", finalDifference);
 assert(finalDifference < 1e-3);
+
+%% 6.1 刚性是时间尺度差异造成的数值困难
+% 一个系统同时含极快衰减和很慢演化时，显式型求解器可能为了稳定性被迫使用极小步长，
+% 即使我们只关心慢过程。这类问题称为 stiff。ode15s 使用适合许多刚性问题的方法，
+% 但每一步工作更复杂，并不意味着它对所有问题都比 ode45 快。
+%
+% 选择求解器可从 ode45 开始；若步数异常多、求解很慢或文档表明系统刚性，再尝试
+% ode15s，并比较相同时间点的解、运行时间和求解统计。两个求解器结果接近是有价值
+% 的交叉检查，但它们也可能共同忠实地求解一个错误模型。
 
 %% 7. 常见错误 / Common mistakes
 %

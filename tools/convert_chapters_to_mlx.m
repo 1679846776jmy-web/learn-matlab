@@ -11,7 +11,16 @@
 % flag to true only when you intentionally want to regenerate outputs after
 % preserving or merging those notes.
 
-overwriteExisting = false;
+if ~exist("overwriteExisting", "var")
+    overwriteExisting = false;
+end
+
+% Optional: set chapterNumbers before running this script to convert only
+% selected chapters, for example chapterNumbers = 2:4. This prevents a
+% maintenance pass from touching co-created chapters outside its scope.
+if ~exist("chapterNumbers", "var")
+    chapterNumbers = [];
+end
 
 rootDir = fileparts(fileparts(mfilename("fullpath")));
 srcDir = fullfile(rootDir, "chapters_src");
@@ -33,7 +42,15 @@ chapterMap = {
     "Ch08_IntegrationDifferentiationInterpolation.m", "Ch08_数值积分微分偏导与插值_完结版.mlx"
     "Ch09_ODEPhysicalModelCases.m", "Ch09_ODE求解与物理模型案例_完结版.mlx"
     "Ch10_PDEFiniteDifferenceTransport.m", "Ch10_PDE有限差分入门与一维输运模型_完结版.mlx"
+    "Ch11_MATLABProjectTips.m", "Ch11_MATLAB项目使用Tips命令窗口路径类型与调试_完结版.mlx"
+    "Ch12_MATLABEngineeringAppsOverview.m", "Ch12_MATLAB工程相关App总览_完结版.mlx"
 };
+
+if ~isempty(chapterNumbers)
+    selectedIds = compose("Ch%02d", chapterNumbers(:));
+    sourceIds = extractBefore(string(chapterMap(:, 1)), "_");
+    chapterMap = chapterMap(ismember(sourceIds, selectedIds), :);
+end
 
 for k = 1:size(chapterMap, 1)
     sourceFile = char(fullfile(srcDir, chapterMap{k, 1}));
@@ -52,4 +69,4 @@ for k = 1:size(chapterMap, 1)
     matlab.internal.liveeditor.openAndSave(sourceFile, destinationFile);
 end
 
-fprintf("Converted %d chapter files.\n", size(chapterMap, 1));
+fprintf("Processed %d selected chapter files.\n", size(chapterMap, 1));

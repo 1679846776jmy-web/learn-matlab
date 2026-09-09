@@ -4,6 +4,7 @@
 % 1. 知道什么时候写脚本，什么时候写函数。
 % 2. 学会使用学习库中的 +fusionlearn package。
 % 3. 理解路径配置和真实数据路径分离。
+% 4. 能读懂入口脚本、配置、函数、测试和输出之间的调用关系。
 %
 % Key terms:
 % script, function, input argument, output argument, package, path, configuration
@@ -27,6 +28,24 @@ end
 demo = fusionlearn.io.makeDemoSignal("DurationMs", 10, "SampleRateHz", 50000);
 fprintf("Signal points: %d\n", numel(demo.signal));
 
+%% 1.1 脚本与函数的工作区边界
+% 脚本在调用者的 Workspace 中执行。脚本中新建或修改的变量，运行结束后通常还留在
+% 当前 Workspace。这让探索很方便，也意味着脚本可能意外依赖“之前碰巧存在”的变量。
+%
+% 函数有自己的局部 Workspace。输入参数是数据进入函数的明确入口，输出参数是结果
+% 离开函数的明确出口。函数内部的临时变量默认不会出现在外部，因此更容易单独测试、
+% 重复调用，也更不容易被同名变量干扰。
+%
+% 判断原则：一次性组织步骤用脚本；有清楚输入输出、会重复使用或需要独立检查的计算
+% 写成函数。函数并不要求“算法很复杂”，哪怕只是统一单位换算，也可能值得封装。
+
+demoShort = fusionlearn.io.makeDemoSignal("DurationMs", 2, ...
+    "SampleRateHz", 20000);
+demoLong = fusionlearn.io.makeDemoSignal("DurationMs", 8, ...
+    "SampleRateHz", 20000);
+fprintf("The same function returned %d and %d samples for two inputs.\n", ...
+    numel(demoShort.signal), numel(demoLong.signal));
+
 %% 2. MATLAB package folder
 % functions/+fusionlearn 下面的函数通过 fusionlearn.xxx.yyy 调用。
 %
@@ -41,6 +60,19 @@ fig = fusionlearn.plot.plotSignalOverview( ...
     "SignalName", "demo signal", ...
     "SignalUnit", "a.u.");
 
+%% 2.1 package、文件夹和调用名称如何对应
+% `functions/+fusionlearn/+io/makeDemoSignal.m` 中，以加号开头的文件夹定义 package。
+% 调用时不写加号，而写成 `fusionlearn.io.makeDemoSignal(...)`。最后一段是函数，
+% 前面的点号层级说明它属于哪个模块。
+%
+% MATLAB path 只需要包含 `+fusionlearn` 的父目录，也就是 functions。不要把
+% `+fusionlearn`、`+io` 等每一层都分别 addpath。package 自己负责解析内部层级。
+%
+% 示例里的 `"DurationMs", 10` 是 Name-Value 参数：名称说明含义，后面的值提供设置。
+% 相比只写一串位置参数，它在参数较多时更容易阅读，也减少把采样率和时长写反的风险。
+
+disp(which("fusionlearn.io.makeDemoSignal"));
+
 %% 3. 数据路径配置
 % 真实数据路径不应该写死在每个脚本里。
 % 本学习库提供 data_paths_template.m，后续可复制为 data_paths_local.m。
@@ -53,6 +85,23 @@ disp(paths);
 fusionlearn.utils.checkPathExists(paths.efitRawDir, "EFIT raw directory");
 fusionlearn.utils.checkPathExists(paths.efitMatDir, "EFIT MAT directory");
 fusionlearn.utils.checkPathExists(paths.dbsMatFile, "DBS MAT file");
+
+%% 3.1 相对路径、绝对路径和项目根目录
+% 绝对路径从盘符或系统根目录开始，只在当前电脑上稳定。相对路径依赖 Current Folder，
+% 换一个启动位置就可能失效。工程脚本通常先确定项目根目录，再用 fullfile 逐层组合：
+%
+% `fullfile(rootDir, "data", "sample.mat")`
+%
+% `mfilename("fullpath")` 可以得到当前 m 文件的完整位置；再用 fileparts 向上找到
+% 根目录。这样脚本从不同 Current Folder 启动时仍能定位自己的资源。
+%
+% 路径配置和物理参数也应分开：路径回答“文件在哪里”，物理配置回答“这次算什么”。
+% 私有数据路径可以留在被 Git 忽略的本地配置中，公开代码只依赖字段名，不依赖某台
+% 电脑的盘符。
+
+chapterFile = mfilename("fullpath");
+chapterSourceDir = fileparts(chapterFile);
+fprintf("This chapter source directory is: %s\n", chapterSourceDir);
 
 %% 4. 最小工程化流程
 % 一个更干净的科研脚本通常长这样：
@@ -75,6 +124,26 @@ ylabel("Detrended signal (a.u.)");
 title("Processed signal");
 grid on;
 fusionlearn.plot.applyResearchStyle(gca);
+
+%% 4.1 主流程应让读者一眼看到“数据怎样流动”
+% 一个入口脚本不需要藏起所有细节，但应突出数据流：config -> rawData -> processedData
+% -> result -> figure/output。每一步使用新名字，能够帮助你比较处理前后数据，也能减少
+% “同一个变量被反复覆盖后，不知道它现在代表什么”的问题。
+%
+% 函数接口还应尽量携带必要元信息。例如信号不只有数值数组，还需要时间轴、采样率、
+% 单位和来源。struct、table 或 timetable 往往比多个没有说明的独立数组更可靠。
+%
+% 保存结果时，建议同时记录关键参数、代码可识别的版本信息和生成时间。只保存最终
+% 数组却不保存输入条件，几周后很难判断两个结果为什么不同。
+
+workflowConfig = struct("duration_ms", 4, "sampleRate_Hz", 40000);
+rawData = fusionlearn.io.makeDemoSignal( ...
+    "DurationMs", workflowConfig.duration_ms, ...
+    "SampleRateHz", workflowConfig.sampleRate_Hz);
+processedData = rawData;
+processedData.signal = rawData.signal - mean(rawData.signal);
+processedData.processing = "mean removed";
+fprintf("Workflow result: %s.\n", processedData.processing);
 
 %% 5. 常见错误 / Common mistakes
 %

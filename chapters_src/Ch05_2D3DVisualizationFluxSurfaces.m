@@ -4,6 +4,7 @@
 % 1. 掌握二维场和三维曲面的基础画法。
 % 2. 学会使用 meshgrid 构造 R-Z 网格。
 % 3. 为后续 EFIT 磁通面可视化做准备。
+% 4. 能把矩阵的行列与 R、Z 坐标正确对应，并解释颜色和等值线。
 %
 % Key terms:
 % meshgrid, contour, contourf, surface plot, colorbar, flux surface, R-Z plane
@@ -30,6 +31,22 @@ kappa = 1.6;
 
 psi = ((RR - R0)/a).^2 + (ZZ/(kappa*a)).^2;
 
+%% 1.1 meshgrid 输出尺寸和物理坐标怎样对应
+% R 有 121 个位置，Z 有 161 个位置。meshgrid(R,Z) 生成的 RR、ZZ 都是
+% 161x121：矩阵的每一列对应一个 R，矩阵的每一行对应一个 Z。
+%
+% 因此场量 psi(row,column) 可读成 psi(Z(row),R(column))。这也是 contour(RR,ZZ,psi)
+% 和 imagesc(R,Z,psi) 能正确绘图的前提。若把 R、Z 顺序写反，代码可能仍能画出图，
+% 但物理轴和矩阵方向会错位。
+%
+% RR 的每一行都是完整 R 轴副本，ZZ 的每一列都是完整 Z 轴副本。先看 size，
+% 再看首行/首列，通常能快速确认方向。
+
+fprintf("R points = %d, Z points = %d, field size = %d x %d.\n", ...
+    numel(R), numel(Z), size(psi, 1), size(psi, 2));
+disp(RR(1, 1:5));
+disp(ZZ(1:5, 1).');
+
 %% 2. 用 contour 画模拟磁通面
 
 figure("Color", "w");
@@ -45,6 +62,18 @@ axis equal tight;
 grid on;
 fusionlearn.plot.applyResearchStyle(gca);
 
+%% 2.1 等值线表达“场值相同的位置”
+% contour 并不是直接画出网格线，而是在二维场中寻找指定数值的轨迹。`psi=1`
+% 这条线之所以被当作玩具边界，是我们定义模型时赋予它这个意义；MATLAB 本身并
+% 不知道哪条线是 LCFS，也不会自动判断磁轴或限制器。
+%
+% 等值线数量太少会隐藏结构，太多会让图难读。研究图中最好明确关键 levels，
+% 例如 `[0.2 0.5 0.8 1.0]`，并把真正重要的边界用线型或颜色单独强调。
+
+selectedFluxLevels = [0.2 0.5 0.8 1.0];
+fprintf("Selected %d physically interpretable contour levels.\n", ...
+    numel(selectedFluxLevels));
+
 %% 3. 用 contourf 和 colorbar 看二维场
 
 pressure = exp(-psi);
@@ -58,6 +87,17 @@ title("Toy pressure field");
 axis equal tight;
 fusionlearn.plot.applyResearchStyle(gca);
 
+%% 3.1 填色图中的颜色必须能还原成数值
+% contourf 把数值范围分成若干区间并填色，colorbar 给出颜色到数值的映射。若比较
+% 多个 case，应尽量使用相同的 `clim`，否则两幅图颜色相同却可能代表不同数值。
+%
+% colormap 只改变视觉编码，不改变 pressure 数组。选择色图时应保证数值顺序清楚；
+% 对有正有负且以 0 为中心的量，可考虑发散色图并把颜色范围对称设置。
+
+pressureRange = [min(pressure(:)), max(pressure(:))];
+fprintf("Color scale represents pressure in [%.3f, %.3f].\n", ...
+    pressureRange(1), pressureRange(2));
+
 %% 4. 用 surf 看三维曲面
 
 figure("Color", "w");
@@ -69,6 +109,14 @@ title("3D surface view of pressure");
 colorbar;
 view(35, 30);
 fusionlearn.plot.applyResearchStyle(gca);
+
+%% 4.1 surf 是二维场的三维视角，不会增加新的物理维度
+% surf 的 x、y 来自 R、Z，z 高度来自 pressure；表面颜色默认也与 z 值相关。
+% 它有助于观察峰、谷和梯度，但透视和遮挡可能让精确比较变困难。需要读取具体
+% 数值或边界位置时，contourf/imagesc 往往更直接。
+%
+% `view(2)` 可以把 surf 从正上方观察，`view(35,30)` 则给出倾斜三维视角。
+% 不管视角如何变化，底层 pressure 数据都没有变化。
 
 %% 5. imagesc 的坐标方向
 % imagesc 很适合快速看二维矩阵，但要注意 y 轴方向。
@@ -82,6 +130,13 @@ xlabel("R (m)");
 ylabel("Z (m)");
 title("Pressure field using imagesc");
 fusionlearn.plot.applyResearchStyle(gca);
+
+%% 5.1 imagesc 为什么经常需要 YDir normal
+% 图像坐标习惯通常把第 1 行放在最上方，所以 imagesc 默认可能让 y 轴向下增加。
+% R-Z 物理坐标通常希望 Z 向上增加，因此设置 `YDir` 为 `normal`。
+%
+% imagesc 更接近“每个矩阵单元显示一个颜色块”，适合快速查看大矩阵；contourf
+% 强调连续等值区域。两者使用同一数据时，应检查轴范围、方向和颜色范围是否一致。
 
 %% 6. 常见错误 / Common mistakes
 %
@@ -221,4 +276,3 @@ fusionlearn.plot.applyResearchStyle(gca);
 assert(isequal(size(RR), size(psi)));
 assert(isequal(size(ZZ), size(pressure)));
 assert(any(insidePlasma(:)));
-

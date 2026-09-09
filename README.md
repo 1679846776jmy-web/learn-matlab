@@ -48,6 +48,8 @@ Ch00_如何使用这套讲义_完结版.mlx
 | Ch08 | 数值积分、微分、偏导与插值 |
 | Ch09 | ODE 求解与物理模型案例 |
 | Ch10 | PDE 有限差分入门与一维输运模型 |
+| Ch11 | MATLAB 项目使用 Tips：命令窗口、路径、数据类型与调试习惯 |
+| Ch12 | MATLAB 工程相关 App 总览 |
 
 ## 目录说明
 
@@ -93,6 +95,7 @@ examples/basic_syntax/
 examples/plotting/
 examples/data_io/
 examples/numerical_methods/
+examples/project_tips/rk3_pde_project/
 ```
 
 示例脚本会自动定位仓库根目录并初始化路径，可以从 MATLAB 中直接运行。

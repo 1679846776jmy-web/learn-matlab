@@ -42,6 +42,18 @@ fprintf("dt = %.4e\n", dt);
 fprintf("stability number chi*dt/dx^2 = %.3f\n", stabilityNumber);
 assert(stabilityNumber <= 0.5);
 
+%% 1.1 PDE 比 ODE 多出的核心是“空间耦合”
+% ODE 只追踪有限个状态随时间变化；PDE 中 u=u(x,t)，每个位置都有自己的状态，
+% 又通过空间导数与邻近位置耦合。离散 x 后，121 个网格点就变成 121 个随时间变化
+% 的未知量，PDE 暂时转化为一个大型 ODE 系统。
+%
+% 二阶导数衡量曲线弯曲程度。峰顶通常向下弯，d2u/dx2<0，所以扩散使峰下降；谷底
+% 向上弯，二阶导数为正，所以扩散使谷上升。整体效果是抹平空间差异。
+%
+% 量纲上，du/dt 的单位为 u/s，d2u/dx2 为 u/m^2，因此 chi 的单位应为 m^2/s。
+% 本章 x 使用归一化坐标时，chi 也只是与该归一化一致的玩具系数，不能直接当真实
+% 实验输运系数报告。
+
 %% 2. 显式推进一维扩散
 % 显式 Euler 的思想：
 %
@@ -77,6 +89,23 @@ legend("step 0", "step 20", "step 80", "step 160", "Location", "best");
 grid on;
 fusionlearn.plot.applyResearchStyle(gca);
 
+%% 2.1 一次显式推进实际做了四件事
+% 第一步：读取当前 u 和边界条件。
+% 第二步：在每个内部点计算二阶空间差分。
+% 第三步：用 `uNext=u+dt*chi*d2u_dx2` 推进一个时间步。
+% 第四步：重新施加边界值，并把结果作为下一步输入。
+%
+% 这个函数每次只推进一步，外层脚本决定推进多少步、何时保存快照。这种职责拆分使
+% 单步公式可以独立测试，也让主脚本清楚表达时间循环。
+%
+% 当前示例固定两端 u=0，属于 Dirichlet 边界。剖面扩散到边缘后可以通过边界损失，
+% 因而全域积分不一定守恒。周期边界或零通量 Neumann 边界会有不同的总量行为。
+
+initialIntegral = trapz(x, snapshots(:,1));
+finalIntegral = trapz(x, snapshots(:,end));
+fprintf("Profile integral changed from %.4f to %.4f with fixed-zero boundaries.\n", ...
+    initialIntegral, finalIntegral);
+
 %% 3. 稳定性条件
 % 对最简单的一维显式扩散格式，稳定性条件大致是：
 %
@@ -93,6 +122,21 @@ catch ME
     fprintf("Caught expected error: %s\n", ME.identifier);
 end
 assert(didCatchUnstableStep);
+
+%% 3.1 稳定性限制连接了网格、时间步和计算成本
+% 对本章的显式中心差分扩散格式，sigma=chi*dt/dx^2 不应超过约 1/2。
+% chi 越大或 dx 越小，允许的 dt 越小。空间网格加密两倍使 dx 减半，稳定时间步
+% 大约缩小到四分之一；同一总时间需要约四倍步数，同时每一步网格点也翻倍。
+%
+% 因此一维显式扩散的总工作量会迅速增加。隐式方法每一步需要解线性系统，但可允许
+% 更大的稳定时间步。稳定不等于精确：即使 sigma<1/2，dt 或 dx 仍可能太粗，必须
+% 通过网格/时间步收敛检查判断误差。
+
+refinedDx = dx/2;
+refinedStableDt = fusionlearn.math.explicitDiffusionStableDt( ...
+    refinedDx, chi, 0.8);
+fprintf("Halving dx changes stable dt by a factor of %.3f.\n", ...
+    refinedStableDt/dt);
 
 %% 4. 用矩阵理解扩散
 % Ch07 中学过二阶导数矩阵 D2。
@@ -115,6 +159,21 @@ assert(matrixHelperDifference < 1e-12);
 figure("Color", "w");
 spy(D2);
 title("Second-derivative matrix for 1-D diffusion");
+
+%% 4.1 矩阵写法让“邻点耦合”可见
+% D2 的三条主要对角线分别表示左邻点、当前点和右邻点系数。`D2*u` 一次计算所有
+% 网格点的离散二阶导数，和逐点循环使用相同公式。
+%
+% 但边界行不能只照抄内部 stencil。本例比较时只检查 interior，因为 helper 函数
+% 会明确把边界设为 0，而 D2 的 interior 模式没有完整表达同样的边界更新。
+%
+% 对线性扩散，显式一步也可写成 `uNext=(I+dt*chi*D2)*u`。这个推进矩阵的特征值
+% 与稳定性有关；后续更深入的数值分析会把 Ch07 的线性代数和本章联系起来。
+
+interiorStencil = full(D2(round(numel(x)/2), ...
+    round(numel(x)/2)+(-1:1)));
+disp("Interior D2 stencil coefficients:");
+disp(interiorStencil);
 
 %% 5. 输运系数扫描
 % 在真实输运分析中，扩散系数越大，剖面通常越快被抹平。
@@ -146,6 +205,25 @@ grid on;
 fusionlearn.plot.applyResearchStyle(gca);
 
 assert(max(finalProfiles(:,3)) < max(finalProfiles(:,1)));
+
+%% 5.1 公平比较输运系数必须跑到同一物理时间
+% 不同 chi 的稳定 dt 不同，所以每个 case 使用的 nSteps 也不同。本例先固定
+% totalTime_s，再为每个 chi 选择稳定时间步，并把 dt 调整为恰好到达同一终止时间。
+% 如果只让每个 case 跑相同步数，比较到的实际时间不同，结论会混入时间差异。
+%
+% 峰值下降是一种指标，但不是唯一指标。还可以比较剖面宽度、梯度、边界通量和全域
+% 积分。数值格式本身也可能引入人工扩散，所以解释“chi 变大导致扩散增强”前，应先
+% 做网格收敛，确认变化主要来自物理参数而不是离散误差。
+
+scanPeak = max(finalProfiles, [], 1);
+scanWidthProxy = zeros(size(chiList));
+for caseIndex = 1:numel(chiList)
+    normalizedProfile = finalProfiles(:,caseIndex) ...
+        / max(finalProfiles(:,caseIndex));
+    scanWidthProxy(caseIndex) = trapz(x, normalizedProfile);
+end
+disp(table(chiList.', scanPeak.', scanWidthProxy.', ...
+    'VariableNames', ["Chi", "Peak", "WidthProxy"]));
 
 %% 6. 常见错误 / Common mistakes
 %

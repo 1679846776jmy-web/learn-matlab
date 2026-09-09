@@ -4,6 +4,8 @@
 % 1. 掌握 MATLAB 的数组思维。
 % 2. 会创建向量、矩阵、结构体和逻辑索引。
 % 3. 理解元素运算和矩阵运算的区别。
+% 4. 分清点号在小数、逐元素运算、转置、字段访问和 package 中的不同含义。
+% 5. 会读写 if、for 和 while，并知道什么时候使用 &、|、&&、||。
 %
 % Key terms:
 % variable, vector, matrix, array, index, logical indexing, element-wise operation
@@ -29,6 +31,24 @@ density_1e19m3 = 4.0 * (1 - 0.6*profile_rho.^2) + 0.3;
 disp(size(time_ms));
 disp(size(profile_rho));
 
+%% 1.1 数组思维到底是什么
+% MATLAB 的名字来自 MATrix LABoratory。它把标量看成 1x1 数组，把一串采样点
+% 看成向量，把多通道或二维网格数据看成矩阵。很多函数一次接收整个数组，因此在
+% 写循环之前，应先问：“这个公式能否同时作用到所有采样点？”
+%
+% 行向量尺寸是 1xN，列向量尺寸是 Nx1。它们拥有相同数量的元素，却不是同一形状。
+% 两个变量要逐元素计算时，不只要看 numel，还要看 size 和每个维度的物理含义。
+%
+% 常用创建方法：冒号适合固定步长，linspace 适合固定点数，zeros/ones/nan 适合
+% 预先建立已知尺寸的数组。末尾的 `.'` 把行向量转成列向量。
+
+fixedStep = (0:0.25:1).';
+fixedCount = linspace(0, 1, 5).';
+emptyProfile = nan(size(profile_rho));
+
+disp(table(fixedStep, fixedCount));
+fprintf("Preallocated profile has size %d x %d.\n", size(emptyProfile));
+
 %% 2. 元素运算
 % MATLAB 中最容易踩坑的是点运算：
 %
@@ -39,6 +59,42 @@ x = linspace(0, 1, 6);
 y_element = x.^2;
 
 disp(table(x.', y_element.', 'VariableNames', ["x", "x_squared"]));
+
+%% 2.1 点号语法详解：同一个符号，五种常见身份
+% 第一种：小数点。`3.14` 是一个数，点号属于数字的一部分。
+%
+% 第二种：逐元素运算符。`.*`、`./`、`.^` 让相同位置的元素分别进行乘、除、乘方。
+% 例如 `x.^2` 表示 x 中每个元素平方。相比之下，`A^2` 表示 A*A，只适用于满足
+% 矩阵乘法条件的方阵。
+%
+% 第三种：`.'` 是非共轭转置，只交换行列。单独的 `'` 是共轭转置；当数组包含复数
+% 时，它还会改变虚部符号。实数数组里两者结果看起来相同，所以这个区别容易被忽略。
+%
+% 第四种：字段或属性访问。`signalData.time_ms` 表示从结构体 signalData 取出
+% time_ms 字段；table、timetable 和对象也常用点号访问变量或属性。
+%
+% 第五种：package 限定名。`fusionlearn.io.makeDemoSignal` 中的点号表示层级：
+% fusionlearn package -> io 子 package -> makeDemoSignal 函数。
+%
+% 判断方法不是“看到点号就背答案”，而是看点号旁边是什么：数字、运算符、转置符，
+% 还是变量名/函数名。
+
+A_demo = [1 2; 3 4];
+B_demo = [10 20; 30 40];
+elementMultiply = A_demo .* B_demo;
+matrixMultiply = A_demo * B_demo;
+
+complexRow = [1+2i, 3-4i];
+plainTranspose = complexRow.';
+hermitianTranspose = complexRow';
+
+dotDemo = struct();
+dotDemo.elementMultiply = elementMultiply;
+dotDemo.matrixMultiply = matrixMultiply;
+
+disp(dotDemo.elementMultiply);
+disp(plainTranspose);
+disp(hermitianTranspose);
 
 %% 3. 逻辑索引选取时间窗
 % 聚变数据处理中经常需要截取某个时间窗，例如 1000-1500 ms。
@@ -88,6 +144,51 @@ signalData.description = "Synthetic diagnostic signal";
 
 disp(signalData);
 
+%% 5.1 if、for、while 和逻辑运算符
+% `if` 根据一个标量逻辑条件选择分支；`for` 对已知的一组索引逐个执行；`while`
+% 在条件仍为 true 时继续执行。while 循环必须确保条件最终能变成 false，否则会无限运行。
+%
+% `&` 和 `|` 对数组逐元素进行与/或运算，适合构造逻辑掩码。`&&` 和 `||` 用于
+% 标量条件并具有短路特性：如果左侧已经能决定结果，右侧就不再计算。if 条件中常用
+% `&&`、`||`，筛选整条时间轴时常用 `&`、`|`。
+%
+% 复杂条件建议加括号，明确先后顺序。不要依赖记忆运算符优先级来表达物理条件。
+
+peakValue = max(signal_cut);
+hasEnoughSamples = numel(signal_cut) >= 10;
+if hasEnoughSamples && isfinite(peakValue)
+    qualityMessage = "Window is ready for a basic calculation.";
+elseif ~hasEnoughSamples
+    qualityMessage = "Window is too short.";
+else
+    qualityMessage = "Window contains a non-finite peak.";
+end
+disp(qualityMessage);
+
+countdown = 3;
+while countdown > 0
+    fprintf("while example: %d\n", countdown);
+    countdown = countdown - 1;
+end
+
+%% 5.2 冒号、end 和索引的读法
+% MATLAB 索引从 1 开始。`A(row, column)` 的第一个下标是行，第二个是列。
+% 冒号 `:` 在索引位置表示“这一维全部取出”；`end` 表示该维最后一个位置。
+%
+% `A(:,2)` 取第 2 列，`A(2,:)` 取第 2 行，`A(1:2:end,:)` 隔一行取样。
+% 线性索引 `A(k)` 会按列优先顺序访问矩阵元素。它很方便，但二维物理含义可能被隐藏，
+% 初学时处理 R-Z 网格应优先写清楚行、列两个下标。
+
+indexMatrix = reshape(1:12, 3, 4);
+secondColumn = indexMatrix(:, 2);
+lastRow = indexMatrix(end, :);
+oddRows = indexMatrix(1:2:end, :);
+
+disp(indexMatrix);
+disp(secondColumn);
+disp(lastRow);
+disp(oddRows);
+
 %% 6. 常见错误 / Common mistakes
 %
 % 错误 1：写 y = x^2，而 x 是向量。
@@ -107,6 +208,9 @@ disp(signalData);
 % 练习 4：用循环和向量化分别计算 1 到 100 的立方。
 % 练习 5：把时间、信号、采样率保存进结构体。
 % 练习 6：故意把 .^ 改成 ^，观察报错。
+% 练习 7：构造一个复数行向量，比较 `'` 和 `.'`。
+% 练习 8：分别解释 `2.5`、`x.^2`、`data.signal` 和 `fusionlearn.io.makeDemoSignal` 中的点号。
+% 练习 9：用 if/elseif/else 把温度分成 low、medium、high 三类。
 
 %% 8. 参考答案
 
@@ -175,6 +279,18 @@ fprintf("Selected signal mean = %.3f, std = %.3f\n", signalMean, signalStd);
 % C. x**2
 % 答案：A
 %
+% 选择题 6：复数向量只交换行列、不做共轭，应使用：
+% A. .'
+% B. '
+% C. .^
+% 答案：A
+%
+% 选择题 7：访问结构体字段 time_ms 应写：
+% A. data.time_ms
+% B. data.*time_ms
+% C. data/time_ms
+% 答案：A
+%
 % 选择题 2：选取 5 到 10 ms 的时间窗应该写：
 % A. time_ms >= 5 & time_ms <= 10
 % B. time_ms >= 5 && time_ms <= 10
@@ -217,3 +333,10 @@ rowVector = 1:5;
 columnVector = (1:5).';
 assert(isequal(size(rowVector), [1 5]));
 assert(isequal(size(columnVector), [5 1]));
+
+% 错题 3：认为所有点号都表示逐元素运算。
+% 更正：只有 `.*`、`./`、`.^` 是相应的逐元素运算；小数点、`.'`、字段访问和
+% package 限定名中的点号各有自己的语法含义。
+
+% 错题 4：在 if 中直接放入一整条逻辑数组，却没有说明要 all 还是 any。
+% 更正：先决定含义。要求所有元素满足用 all(mask)，至少一个满足用 any(mask)。

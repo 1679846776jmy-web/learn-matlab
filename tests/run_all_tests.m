@@ -10,5 +10,6 @@ addpath(fullfile(rootDir, "data", "external_paths"));
 run(fullfile(rootDir, "tests", "test_phase1_basics.m"));
 run(fullfile(rootDir, "tests", "test_phase2_intro.m"));
 run(fullfile(rootDir, "tests", "test_phase2_ode_pde.m"));
+run(fullfile(rootDir, "tests", "test_project_tips.m"));
 
 fprintf("All available tests passed.\n\n");
